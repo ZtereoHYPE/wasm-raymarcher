@@ -6,5 +6,5 @@ ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 (async () => {
     const {instance} = await WebAssembly.instantiateStreaming(fetch('build/main.wasm'));
-    console.log(instance.exports.sumInts.get(4, 1));
+    console.log(instance.exports.sumInts(4, 1));
 })();
