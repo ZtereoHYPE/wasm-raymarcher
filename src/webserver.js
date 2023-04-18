@@ -17,6 +17,7 @@ const buildCmd = `clang \
             -Wl,--lto-O3 \
             -Wl,-z,stack-size=$[8 * 1024 * 1024] \
             -o src/build/main.wasm \
+            -msimd128 \
             src/wasm/main.c`;
 
 let lastWatch = Date.now();
