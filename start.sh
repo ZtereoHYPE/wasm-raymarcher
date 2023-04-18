@@ -1,7 +1,7 @@
 mkdir -p src/build
 
 clang \
-   --target=wasm64 \
+   --target=wasm32 \
    -O3 \
    -flto \
    -nostdlib \
