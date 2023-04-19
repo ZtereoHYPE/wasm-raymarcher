@@ -18,10 +18,10 @@ const buildCmd = `clang \
             -Wl,-z,stack-size=$[8 * 1024 * 1024] \
             -o src/build/main.wasm \
             -msimd128 \
-            src/wasm/main.c`;
+            src/wasm_src/*.c`;
 
 let lastWatch = Date.now();
-fs.watch('src/wasm/', {}, (evt, name) => {
+fs.watch('src/wasm_src/', {}, (evt, name) => {
     if (Date.now() - lastWatch < 100) return;
     lastWatch = Date.now();
 
@@ -50,6 +50,8 @@ const server = http.createServer((req, res) => {
     else
         url = 'src/' + url;
 
+
+    // todo: there must be a better way to do this
     switch (url.split('.').pop()) {
         case 'js':
             res.setHeader('Content-Type', 'text/javascript');
