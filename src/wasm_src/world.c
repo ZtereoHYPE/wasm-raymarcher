@@ -1,6 +1,6 @@
 #include <wasm_simd128.h>
 #include "world.h"
-#include "lib_malloc.h"
+#include "stdlib.h"
 
 World *createWorld() {
     World *world = customMalloc(sizeof(World));
@@ -11,7 +11,7 @@ World *createWorld() {
     return world;
 }
 
-void createSphere(World *world, float x, float y, float z, float radius) {
+void addSphere(World *world, float x, float y, float z, float radius) {
     Sphere *sphere = customMalloc(sizeof(Sphere));
 
     sphere->position = wasm_f32x4_make(x, y, z, 0);
@@ -20,13 +20,17 @@ void createSphere(World *world, float x, float y, float z, float radius) {
     _addSphereToWorld(world, sphere);
 }
 
+void setLight(World *world, float x, float y, float z) {
+    world->light = wasm_f32x4_make(x, y, z, 0);
+}
+
 /*
  *   *** PRIVATE FUNCTIONS ***
  */
 
 void _addSphereToWorld(World *world, Sphere *sphere) {
     // "realloc"
-    Sphere **newSphereArray = customMalloc(sizeof(Sphere *) * (world->sphereCount + 1));
+    Sphere **newSphereArray = customMalloc(sizeof(Sphere *) * (++world->sphereCount));
     for (int i = 0; i < world->sphereCount; i++) {
         newSphereArray[i] = world->spheres[i];
     }
@@ -36,8 +40,4 @@ void _addSphereToWorld(World *world, Sphere *sphere) {
 
     // update the world's array
     world->spheres = newSphereArray;
-}
-
-void setLight(World *world, float x, float y, float z) {
-    world->light = wasm_f32x4_make(x, y, z, 0);
 }
