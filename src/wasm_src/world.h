@@ -16,7 +16,7 @@ typedef struct {
 } World;
 
 World *createWorld();
-void createSphere(World *world, float x, float y, float z, float radius);
+void addSphere(World *world, float x, float y, float z, float radius);
 void setLight(World *world, float x, float y, float z);
 
 /* private stuff */
