@@ -26,6 +26,10 @@ void wipeMemory() {
     bump_pointer = (void *) &__heap_base;
 }
 
+void popMemory(int size) {
+    bump_pointer = (void *)bump_pointer - size;
+}
+
 // returns the distance between the heap base and the bump pointer, in bytes 
 int getHeapUsage() {
     return (int) bump_pointer - (int) &__heap_base;
@@ -56,6 +60,7 @@ void growMemory(int pages) {
     __builtin_wasm_memory_grow(0, pages);
     currentPages += pages;
 }
+
 // math functions
 double sqrt(double n) {
     return __builtin_sqrt(n);

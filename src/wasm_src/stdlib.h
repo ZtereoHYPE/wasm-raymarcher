@@ -6,11 +6,12 @@
 #define INT_MAX 2147483647
 
 // logging
-__attribute__((import_module("env"), import_name("jslog"))) void jslog(const char str, int len);
+__attribute__((import_module("env"), import_name("jslog"))) void logNumber(double n);
 
 // memory intrinsics
 void *customMalloc(int size);
 void wipeMemory();
+void popMemory(int size);
 int getHeapUsage();
 void *memset(void *ptr, int value, unsigned long num);
 void *memcpy(void *destination, const void *source, unsigned long n);
