@@ -33,8 +33,6 @@ int *rayMarch(const unsigned int resolution, World *world) {
     // 3 channels per pixels
     int *pixels = customMalloc(resolution * resolution * 3 * sizeof(int));
 
-    jslog('L', 1);
-
     for (int i = 0; i < resolution; i++) {
         for (int j = 0; j < resolution; j++) {
             // clear the pixel
@@ -47,19 +45,27 @@ int *rayMarch(const unsigned int resolution, World *world) {
             float v = ((float) j / ((float)resolution / 2)) - 1;
 
             v128_t uvVector = wasm_f32x4_make(u, v, 1, 0);
-            v128_t rayLocation = wasm_f32x4_make(0, 0, -0.0f, 0);
+            // normalise the vector
+            float uvVectorLength = sqrt(
+                u * u +
+                v * v +
+                1 * 1
+            );
+            uvVector = wasm_f32x4_div(uvVector, wasm_f32x4_splat(uvVectorLength));
+
+            v128_t rayLocation = world->camera;
             double closestDistance = DOUBLE_MAX;
             int loops = 0;
 
             // march the ray forwards
-            while (closestDistance > 0.01 && loops < 1000) {
+            while (closestDistance > 1 && loops < 1000) {
                 closestDistance = getSurfaceDistance(rayLocation, world);
                 rayLocation = wasm_f32x4_add(rayLocation, uvVector);
                 loops++;
             }
 
             // if we hit a surface, calculate the color
-            if (closestDistance <= 0.01) {
+            if (closestDistance <= 1) {
                 pixels[(i * resolution + j) * 3] = 255;
                 pixels[(i * resolution + j) * 3 + 1] = 255;
                 pixels[(i * resolution + j) * 3 + 2] = 255;
@@ -67,5 +73,7 @@ int *rayMarch(const unsigned int resolution, World *world) {
         }
     }
 
+    // doesn't actually clear it, it's just so that at the next render we're not leaking hundreds of MBs
+    popMemory(resolution * resolution * 3 * sizeof(int));
     return pixels;
 }
