@@ -12,7 +12,7 @@ typedef struct {
     Sphere **spheres;
     int sphereCount;
     v128_t light;
-    // v128_t cameraPos;
+    v128_t camera;
 } World;
 
 World *createWorld();

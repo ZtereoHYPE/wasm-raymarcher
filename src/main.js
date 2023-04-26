@@ -4,7 +4,7 @@ const ctx = canvas.getContext('2d', {alpha: false});
 ctx.fillStyle = 'black';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-const RES = 64;
+const RES = 128;
 
 let wasmModule = null;
 
@@ -13,17 +13,13 @@ fetch('build/main.wasm')
     .then(response => response.arrayBuffer())
     .then(buffer => WebAssembly.compile(buffer))
     .then(compiledModule => {
-        const jslog = (offset, length) => {
-            // let bytes = new Uint8Array(memory.buffer, offset, length);
-        
-            // let string = new TextDecoder('utf8').decode(char);
-        
-            console.log(String.fromCharCode(offset));
+        const logNum = (n) => {
+            console.log(n);
         }
 
         wasmModule = new WebAssembly.Instance(compiledModule, {
             js: {mem: memory},
-            env: { "jslog": jslog }
+            env: { "jslog": logNum }
         });
         
         setup();
@@ -32,14 +28,24 @@ fetch('build/main.wasm')
 
 let worldPointer = null;
 let exp = null;
+let pressedKeys = [];
 
 function setup() {
     exp = wasmModule.exports;
     worldPointer = exp.createWorld();
-    exp.addSphere(worldPointer, 0, 0, 10, 0.0);
+    exp.addSphere(worldPointer, 0, 0, 10, 10.0);
+
+    window.addEventListener('keydown', (e) => {
+        pressedKeys[e.keyCode] = true;
+    });
+    window.addEventListener('keyup', (e) => {
+        pressedKeys[e.keyCode] = false;
+    });
 }
 
 function draw() {
+    movePlayer();
+
     const raymarchResult = exp.rayMarch(RES, worldPointer);
     const raymarchResultArr = new Int32Array(exp.memory.buffer, raymarchResult, RES * RES * 3);
 
@@ -51,5 +57,23 @@ function draw() {
         }
     }
 
-    // requestAnimationFrame(draw);
+    requestAnimationFrame(draw);
+}
+
+// move player using wasd
+function movePlayer() {
+    const speed = 0.1;
+
+    if (pressedKeys[87]) {
+        exp.moveCamera(worldPointer, 0, 0, speed);
+    }
+    if (pressedKeys[83]) {
+        exp.moveCamera(worldPointer, 0, 0, -speed);
+    }
+    if (pressedKeys[65]) {
+        exp.moveCamera(worldPointer, 0, -speed, 0);
+    }
+    if (pressedKeys[68]) {
+        exp.moveCamera(worldPointer, 0, speed, 0);
+    }
 }

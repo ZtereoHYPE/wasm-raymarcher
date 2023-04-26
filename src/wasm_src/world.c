@@ -6,7 +6,7 @@ World *createWorld() {
     World *world = customMalloc(sizeof(World));
     world->sphereCount = 0;
     world->light = wasm_f32x4_const(0, 0, 0, 0);
-    // world->camera = wasm_i32x4_const(0, 0, 0, 0);
+    world->camera = wasm_i32x4_const(0, 0, 0, 0);
 
     return world;
 }
@@ -17,11 +17,17 @@ void addSphere(World *world, float x, float y, float z, float radius) {
     sphere->position = wasm_f32x4_make(x, y, z, 0);
     sphere->radius = radius;
 
+    // logNumber(sphere->radius);
+
     _addSphereToWorld(world, sphere);
 }
 
 void setLight(World *world, float x, float y, float z) {
     world->light = wasm_f32x4_make(x, y, z, 0);
+}
+
+void moveCamera(World *world, float x, float y, float z) {
+    world->camera = wasm_f32x4_add(world->camera, wasm_f32x4_make(x, y, z, 0));
 }
 
 /*
