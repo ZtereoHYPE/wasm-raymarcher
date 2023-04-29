@@ -4,11 +4,12 @@
 #define WASM_PAGE_SIZE 65536
 #define DOUBLE_MAX 1.7976931348623157e+308
 #define INT_MAX 2147483647
+#define NULL 0
 
 // logging
 __attribute__((import_module("env"), import_name("jslog"))) void logNumber(double n);
 
-// memory intrinsics
+// memory
 void *customMalloc(int size);
 void wipeMemory();
 void popMemory(int size);
