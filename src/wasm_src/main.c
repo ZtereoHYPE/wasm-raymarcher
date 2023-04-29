@@ -106,10 +106,6 @@ int *rayMarch(const unsigned int resolution, World *world) {
                 v128_t normal = wasm_f32x4_splat(0);
                 getSurfaceNormal(rayLocation, closestSphere, &normal);
 
-                // logNumber(wasm_f32x4_extract_lane(normal, 0));
-                // logNumber(wasm_f32x4_extract_lane(normal, 1));
-                // logNumber(wasm_f32x4_extract_lane(normal, 2));
-
                 pixels[(i * resolution + j) * 3] = (int)(wasm_f32x4_extract_lane(normal, 0) * 255);
                 pixels[(i * resolution + j) * 3 + 1] = (int)(wasm_f32x4_extract_lane(normal, 1) * 255);
                 pixels[(i * resolution + j) * 3 + 2] = (int)(wasm_f32x4_extract_lane(normal, 2) * 255);
