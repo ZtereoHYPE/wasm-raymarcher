@@ -2,31 +2,64 @@
 #include "stdlib.h"
 #include "world.h"
 
-// todo: optimise w/ SIMD distance calculation
-double getSurfaceDistance(v128_t location, World *world) {
+double simdDistance(const v128_t v1, const v128_t v2) {
+    v128_t result = wasm_f32x4_sub(v1, v2);
+    result = wasm_f32x4_mul(result, result);
+
+    double dist = wasm_f32x4_extract_lane(result, 0) +
+                  wasm_f32x4_extract_lane(result, 1) +
+                  wasm_f32x4_extract_lane(result, 2);
+
+    return sqrt(dist);
+}
+
+double getSurfaceDistance(v128_t location, World *world, Sphere **closest) {
     double smallestDistance = DOUBLE_MAX, currentDistance;
-    // world->spheres[1000000] = 0;
 
     for (int i = 0; i < world->sphereCount; i++) {
-        float locX = wasm_f32x4_extract_lane(location, 0);
-        float locY = wasm_f32x4_extract_lane(location, 1);
-        float locZ = wasm_f32x4_extract_lane(location, 2);
-        float sphereX = wasm_f32x4_extract_lane(world->spheres[i]->position, 0);
-        float sphereY = wasm_f32x4_extract_lane(world->spheres[i]->position, 1);
-        float sphereZ = wasm_f32x4_extract_lane(world->spheres[i]->position, 2);
-
-        currentDistance = sqrt(
-            (locX - sphereX) * (locX - sphereX) +
-            (locY - sphereY) * (locY - sphereY) +
-            (locZ - sphereZ) * (locZ - sphereZ)
-        ) - world->spheres[i]->radius;
+        currentDistance = simdDistance(world->spheres[i]->position, location) - world->spheres[i]->radius;
 
         if (currentDistance < smallestDistance) {
             smallestDistance = currentDistance;
+            *closest = world->spheres[i];
         }
     }
 
     return smallestDistance;
+}
+
+void getSurfaceNormal(const v128_t location, Sphere *closest, v128_t *normal) {
+    const float epsilon = 0.01;
+    float xDelta, yDelta, zDelta, dist;
+    v128_t epsilonVector = location, xIncr, yIncr, zIncr;
+
+    xIncr = wasm_f32x4_const(epsilon, 0, 0, 0);
+    yIncr = wasm_f32x4_const(0, epsilon, 0, 0);
+    zIncr = wasm_f32x4_const(0, 0, epsilon, 0);
+
+    dist = simdDistance(epsilonVector, closest->position) - closest->radius;
+
+    epsilonVector = wasm_f32x4_add(epsilonVector, xIncr);
+    xDelta = simdDistance(epsilonVector, closest->position) - closest->radius;
+    epsilonVector = wasm_f32x4_sub(epsilonVector, xIncr);
+
+    epsilonVector = wasm_f32x4_add(epsilonVector, yIncr);
+    yDelta = simdDistance(epsilonVector, closest->position) - closest->radius;
+    epsilonVector = wasm_f32x4_sub(epsilonVector, yIncr);
+
+    epsilonVector = wasm_f32x4_add(epsilonVector, zIncr);
+    zDelta = simdDistance(epsilonVector, closest->position) - closest->radius;
+
+    *normal = wasm_f32x4_make(xDelta - dist, yDelta - dist, zDelta - dist, 0);
+
+    // normalise the vector
+    float normalLength = sqrt(
+        xDelta * xDelta +
+        yDelta * yDelta +
+        zDelta * zDelta
+    );
+
+    *normal = wasm_f32x4_div(*normal, wasm_f32x4_splat(normalLength));
 }
 
 int *rayMarch(const unsigned int resolution, World *world) {
@@ -38,7 +71,7 @@ int *rayMarch(const unsigned int resolution, World *world) {
             // clear the pixel
             pixels[(i * resolution + j) * 3] = 0;
             pixels[(i * resolution + j) * 3 + 1] = 0;
-            pixels[(i * resolution + j) * 3 + 2] = 100;
+            pixels[(i * resolution + j) * 3 + 2] = 50;
 
             // calculate the UV coordinates and init vectors
             float u = ((float) i / ((float)resolution / 2)) - 1;
@@ -54,21 +87,32 @@ int *rayMarch(const unsigned int resolution, World *world) {
             uvVector = wasm_f32x4_div(uvVector, wasm_f32x4_splat(uvVectorLength));
 
             v128_t rayLocation = world->camera;
+            v128_t directionIncrease = wasm_f32x4_splat(1.01);
             double closestDistance = DOUBLE_MAX;
+            Sphere *closestSphere = NULL;
             int loops = 0;
 
+
             // march the ray forwards
-            while (closestDistance > 1 && loops < 1000) {
-                closestDistance = getSurfaceDistance(rayLocation, world);
+            while (closestDistance > 0.05 && loops < 100) {
+                closestDistance = getSurfaceDistance(rayLocation, world, &closestSphere);
                 rayLocation = wasm_f32x4_add(rayLocation, uvVector);
+                uvVector = wasm_f32x4_mul(uvVector, directionIncrease); // increase the length of the vector, so that we can march further
                 loops++;
             }
 
             // if we hit a surface, calculate the color
-            if (closestDistance <= 1) {
-                pixels[(i * resolution + j) * 3] = 255;
-                pixels[(i * resolution + j) * 3 + 1] = 255;
-                pixels[(i * resolution + j) * 3 + 2] = 255;
+            if (closestDistance <= 0.05) {
+                v128_t normal = wasm_f32x4_splat(0);
+                getSurfaceNormal(rayLocation, closestSphere, &normal);
+
+                // logNumber(wasm_f32x4_extract_lane(normal, 0));
+                // logNumber(wasm_f32x4_extract_lane(normal, 1));
+                // logNumber(wasm_f32x4_extract_lane(normal, 2));
+
+                pixels[(i * resolution + j) * 3] = (int)(wasm_f32x4_extract_lane(normal, 0) * 255);
+                pixels[(i * resolution + j) * 3 + 1] = (int)(wasm_f32x4_extract_lane(normal, 1) * 255);
+                pixels[(i * resolution + j) * 3 + 2] = (int)(wasm_f32x4_extract_lane(normal, 2) * 255);
             }
         }
     }
