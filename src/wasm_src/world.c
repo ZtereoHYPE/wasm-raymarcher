@@ -17,8 +17,6 @@ void addSphere(World *world, float x, float y, float z, float radius) {
     sphere->position = wasm_f32x4_make(x, y, z, 0);
     sphere->radius = radius;
 
-    // logNumber(sphere->radius);
-
     _addSphereToWorld(world, sphere);
 }
 
@@ -42,7 +40,7 @@ void _addSphereToWorld(World *world, Sphere *sphere) {
     }
 
     // add the new sphere
-    newSphereArray[world->sphereCount] = sphere;
+    newSphereArray[world->sphereCount - 1] = sphere;
 
     // update the world's array
     world->spheres = newSphereArray;
