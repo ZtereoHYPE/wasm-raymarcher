@@ -33,7 +33,12 @@ let pressedKeys = [];
 function setup() {
     exp = wasmModule.exports;
     worldPointer = exp.createWorld();
-    exp.addSphere(worldPointer, 0, 0, 20, 10.0);
+    exp.addSphere(worldPointer, 0, 0, 20, 15);
+    exp.addSphere(worldPointer, -30, 1, 20, 7.0);
+    exp.addSphere(worldPointer, -20, 16, 20, 2.0);
+    // exp.addSphere(worldPointer, 20, 0, 20, 10.0);
+    // exp.addSphere(worldPointer, 30, 1, 20, 7.0);
+    // exp.addSphere(worldPointer, 20, 16, 20, 2.0);
 
     window.addEventListener('keydown', (e) => {
         pressedKeys[e.keyCode] = true;
@@ -53,7 +58,8 @@ function draw() {
     const pixelSize = canvas.width / RES;
     for (let i = 0; i < RES; i++) {
         for (let j = 0; j < RES; j++) {
-            ctx.fillStyle = `rgb(${raymarchResultArr[(i * RES + j) * 3]}, ${raymarchResultArr[(i * RES + j) * 3 + 1]}, ${raymarchResultArr[(i * RES + j) * 3 + 2]})`;
+            let idx = (i * RES + j) * 3;
+            ctx.fillStyle = `rgb(${raymarchResultArr[idx]}, ${raymarchResultArr[idx + 1]}, ${raymarchResultArr[idx + 2]})`;
             ctx.fillRect(j * pixelSize, i * pixelSize, pixelSize, pixelSize);
         }
     }
