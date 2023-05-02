@@ -17,7 +17,7 @@ void addSphere(World *world, float x, float y, float z, float radius) {
     sphere->position = wasm_f32x4_make(x, y, z, 0);
     sphere->radius = radius;
 
-    _addSphereToWorld(world, sphere);
+    addSphereToWorld(world, sphere);
 }
 
 void setLight(World *world, float x, float y, float z) {
@@ -32,7 +32,7 @@ void moveCamera(World *world, float x, float y, float z) {
  *   *** PRIVATE FUNCTIONS ***
  */
 
-void _addSphereToWorld(World *world, Sphere *sphere) {
+static void addSphereToWorld(World *world, Sphere *sphere) {
     // "realloc"
     Sphere **newSphereArray = customMalloc(sizeof(Sphere *) * (++world->sphereCount));
     for (int i = 0; i < world->sphereCount; i++) {

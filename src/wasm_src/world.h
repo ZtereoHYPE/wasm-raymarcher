@@ -20,6 +20,6 @@ void addSphere(World *world, float x, float y, float z, float radius);
 void setLight(World *world, float x, float y, float z);
 
 /* private stuff */
-void _addSphereToWorld(World *world, Sphere *sphere);
+static void addSphereToWorld(World *world, Sphere *sphere);
 
 #endif
