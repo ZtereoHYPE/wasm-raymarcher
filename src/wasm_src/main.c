@@ -28,29 +28,27 @@ double getSurfaceDistance(v128_t location, World *world, Sphere **closest) {
     return smallestDistance;
 }
 
-void getSurfaceNormal(const v128_t location, Sphere *closest, v128_t *normal) {
-    const float epsilon = 0.01;
+v128_t getSurfaceNormal(const v128_t location, Sphere *closest) {
+    const float epsilon = 0.0001;
     float xDelta, yDelta, zDelta, dist;
-    v128_t epsilonVector = location, xIncr, yIncr, zIncr;
+    v128_t xIncr, yIncr, zIncr, normal;
 
-    xIncr = wasm_f32x4_const(epsilon, 0, 0, 0);
-    yIncr = wasm_f32x4_const(0, epsilon, 0, 0);
-    zIncr = wasm_f32x4_const(0, 0, epsilon, 0);
+    xIncr = wasm_f32x4_make(epsilon, 0, 0, 0);
+    xIncr = wasm_f32x4_add(xIncr, location);
 
-    dist = simdDistance(epsilonVector, closest->position) - closest->radius;
+    yIncr = wasm_f32x4_make(0, epsilon, 0, 0);
+    yIncr = wasm_f32x4_add(yIncr, location);
 
-    epsilonVector = wasm_f32x4_add(epsilonVector, xIncr);
-    xDelta = simdDistance(epsilonVector, closest->position) - closest->radius;
-    epsilonVector = wasm_f32x4_sub(epsilonVector, xIncr);
+    zIncr = wasm_f32x4_make(0, 0, epsilon, 0);
+    zIncr = wasm_f32x4_add(zIncr, location);
 
-    epsilonVector = wasm_f32x4_add(epsilonVector, yIncr);
-    yDelta = simdDistance(epsilonVector, closest->position) - closest->radius;
-    epsilonVector = wasm_f32x4_sub(epsilonVector, yIncr);
+    dist = simdDistance(location, closest->position) - closest->radius;
 
-    epsilonVector = wasm_f32x4_add(epsilonVector, zIncr);
-    zDelta = simdDistance(epsilonVector, closest->position) - closest->radius;
+    xDelta = simdDistance(xIncr, closest->position) - closest->radius - dist;
+    yDelta = simdDistance(yIncr, closest->position) - closest->radius - dist;
+    zDelta = simdDistance(zIncr, closest->position) - closest->radius - dist;
 
-    *normal = wasm_f32x4_make(xDelta - dist, yDelta - dist, zDelta - dist, 0);
+    normal = wasm_f32x4_make(xDelta, yDelta, zDelta, 0);
 
     // normalise the vector
     float normalLength = sqrt(
@@ -59,7 +57,7 @@ void getSurfaceNormal(const v128_t location, Sphere *closest, v128_t *normal) {
         zDelta * zDelta
     );
 
-    *normal = wasm_f32x4_div(*normal, wasm_f32x4_splat(normalLength));
+     return wasm_f32x4_div(normal, wasm_f32x4_splat(normalLength));
 }
 
 int *rayMarch(const unsigned int resolution, World *world) {
