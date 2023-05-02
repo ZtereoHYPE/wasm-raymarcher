@@ -85,17 +85,14 @@ int *rayMarch(const unsigned int resolution, World *world) {
             uvVector = wasm_f32x4_div(uvVector, wasm_f32x4_splat(uvVectorLength));
 
             v128_t rayLocation = world->camera;
-            v128_t directionIncrease = wasm_f32x4_splat(1.01);
-            double closestDistance = DOUBLE_MAX;
+            double closestDistance = 50;
             Sphere *closestSphere = NULL;
-            int loops = 0;
-
 
             // march the ray forwards
-            while (closestDistance > 0.05 && loops < 100) {
+            int loops = 0;
+            while (closestDistance > 0.01 && closestDistance < 1000) {
                 closestDistance = getSurfaceDistance(rayLocation, world, &closestSphere);
-                rayLocation = wasm_f32x4_add(rayLocation, uvVector);
-                uvVector = wasm_f32x4_mul(uvVector, directionIncrease); // increase the length of the vector, so that we can march further
+                rayLocation = wasm_f32x4_add(rayLocation, wasm_f32x4_mul(uvVector, wasm_f32x4_splat(closestDistance)));
                 loops++;
             }
 
