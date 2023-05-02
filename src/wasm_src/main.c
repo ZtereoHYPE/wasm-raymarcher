@@ -100,13 +100,12 @@ int *rayMarch(const unsigned int resolution, World *world) {
             }
 
             // if we hit a surface, calculate the color
-            if (closestDistance <= 0.05) {
-                v128_t normal = wasm_f32x4_splat(0);
-                getSurfaceNormal(rayLocation, closestSphere, &normal);
+            if (closestDistance <= 0.01) {
+                v128_t normal = getSurfaceNormal(rayLocation, closestSphere);
 
-                pixels[(i * resolution + j) * 3] = (int)(wasm_f32x4_extract_lane(normal, 0) * 255);
-                pixels[(i * resolution + j) * 3 + 1] = (int)(wasm_f32x4_extract_lane(normal, 1) * 255);
-                pixels[(i * resolution + j) * 3 + 2] = (int)(wasm_f32x4_extract_lane(normal, 2) * 255);
+                pixels[(i * resolution + j) * 3] = (int)((wasm_f32x4_extract_lane(normal, 0)/2+0.5) * 255);
+                pixels[(i * resolution + j) * 3 + 1] = (int)((wasm_f32x4_extract_lane(normal, 1)/2+0.5) * 255);
+                pixels[(i * resolution + j) * 3 + 2] = (int)((wasm_f32x4_extract_lane(normal, 2)/2+0.5) * 255);
             }
         }
     }
