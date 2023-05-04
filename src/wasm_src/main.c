@@ -60,6 +60,43 @@ v128_t getSurfaceNormal(const v128_t location, Sphere *closest) {
      return wasm_f32x4_div(normal, wasm_f32x4_splat(normalLength));
 }
 
+void normalShader(int *pixels, int res, int i, int j, v128_t normal) {
+    normal = wasm_f32x4_mul(normal, wasm_f32x4_splat(0.5));
+    normal = wasm_f32x4_add(normal, wasm_f32x4_splat(0.5));
+
+    pixels[(i * res + j) * 3] = (int)((wasm_f32x4_extract_lane(normal, 0)) * 255);
+    pixels[(i * res + j) * 3 + 1] = (int)((wasm_f32x4_extract_lane(normal, 1)) * 255);
+    pixels[(i * res + j) * 3 + 2] = (int)((wasm_f32x4_extract_lane(normal, 2)) * 255);
+}
+
+void lightShader(int *pixels, int res, int i, int j, v128_t normal, World *world) {
+    v128_t color;
+
+    float lightIntensity = dot(normal, world->light);
+    lightIntensity += 0.3;
+    float minLight = 0.2;
+
+    lightIntensity = lightIntensity < minLight ? minLight : lightIntensity;
+
+    color = wasm_f32x4_add(normal, wasm_f32x4_splat(1));
+    color = wasm_f32x4_mul(color, wasm_f32x4_splat(128));
+
+    color = wasm_f32x4_mul(color, wasm_f32x4_splat(lightIntensity));
+
+    pixels[(i * res + j) * 3] = (int)(wasm_f32x4_extract_lane(color, 0));
+    pixels[(i * res + j) * 3 + 1] = (int)(wasm_f32x4_extract_lane(color, 1));
+    pixels[(i * res + j) * 3 + 2] = (int)(wasm_f32x4_extract_lane(color, 2));
+}
+
+// void mirrorShader(int *pixels, int res, int i, int j, v128_t reflection){
+//     reflection = wasm_f32x4_mul(reflection, wasm_f32x4_splat(0.5));
+//     reflection = wasm_f32x4_add(reflection, wasm_f32x4_splat(0.5));
+
+//     pixels[(i * res + j) * 3] = (int)((wasm_f32x4_extract_lane(reflection, 0)) * 255);
+//     pixels[(i * res + j) * 3 + 1] = (int)((wasm_f32x4_extract_lane(reflection, 1)) * 255);
+//     pixels[(i * res + j) * 3 + 2] = (int)((wasm_f32x4_extract_lane(reflection, 2)) * 255);
+// }
+
 int *rayMarch(const unsigned int resolution, World *world) {
     // 3 channels per pixels
     int *pixels = customMalloc(resolution * resolution * 3 * sizeof(int));
@@ -75,8 +112,8 @@ int *rayMarch(const unsigned int resolution, World *world) {
             float u = ((float) i / ((float)resolution / 2)) - 1;
             float v = ((float) j / ((float)resolution / 2)) - 1;
 
+            // calculate the ray vector
             v128_t uvVector = wasm_f32x4_make(u, v, 1, 0);
-            // normalise the vector
             float uvVectorLength = sqrt(
                 u * u +
                 v * v +
@@ -85,24 +122,37 @@ int *rayMarch(const unsigned int resolution, World *world) {
             uvVector = wasm_f32x4_div(uvVector, wasm_f32x4_splat(uvVectorLength));
 
             v128_t rayLocation = world->camera;
-            double closestDistance = 50;
+            double closestDistance;
             Sphere *closestSphere = NULL;
 
             // march the ray forwards
             int loops = 0;
-            while (closestDistance > 0.01 && closestDistance < 1000) {
+            do {
                 closestDistance = getSurfaceDistance(rayLocation, world, &closestSphere);
                 rayLocation = wasm_f32x4_add(rayLocation, wasm_f32x4_mul(uvVector, wasm_f32x4_splat(closestDistance)));
                 loops++;
-            }
+            } while (closestDistance > 0.01 && closestDistance < 1000);
+
+            // // reflections (bounce from normals)
+            // v128_t reflectionColor;
+            // v128_t normal;
+            // if (closestDistance <= 0.01) {
+            //     v128_t normal = getSurfaceNormal(rayLocation, closestSphere);
+            //     v128_t reflectionDir = wasm_f32x4_sub(uvVector, wasm_f32x4_mul(wasm_f32x4_splat(2), wasm_f32x4_mul(uvVector, normal)));
+            //     double reflectionDistance;
+            //     do {
+            //         reflectionDistance = getSurfaceDistance(rayLocation, world, &closestSphere);
+            //         rayLocation = wasm_f32x4_add(rayLocation, wasm_f32x4_mul(reflectionDir, wasm_f32x4_splat(closestDistance)));
+            //         loops++;
+            //     } while (closestDistance > 0.01 && closestDistance < 1000);
+            // } 
 
             // if we hit a surface, calculate the color
             if (closestDistance <= 0.01) {
                 v128_t normal = getSurfaceNormal(rayLocation, closestSphere);
 
-                pixels[(i * resolution + j) * 3] = (int)((wasm_f32x4_extract_lane(normal, 0)/2+0.5) * 255);
-                pixels[(i * resolution + j) * 3 + 1] = (int)((wasm_f32x4_extract_lane(normal, 1)/2+0.5) * 255);
-                pixels[(i * resolution + j) * 3 + 2] = (int)((wasm_f32x4_extract_lane(normal, 2)/2+0.5) * 255);
+                // normalShader(pixels, resolution, i, j, normal);
+                lightShader(pixels, resolution, i, j, normal, world);
             }
         }
     }
