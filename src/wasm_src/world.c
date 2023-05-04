@@ -22,6 +22,14 @@ void addSphere(World *world, float x, float y, float z, float radius) {
 
 void setLight(World *world, float x, float y, float z) {
     world->light = wasm_f32x4_make(x, y, z, 0);
+    // normalise the vector
+    float lightLength = sqrt(
+        x * x +
+        y * y +
+        z * z
+    );
+
+    world->light = wasm_f32x4_div(world->light, wasm_f32x4_splat(lightLength));
 }
 
 void moveCamera(World *world, float x, float y, float z) {

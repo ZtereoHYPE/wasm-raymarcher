@@ -1,6 +1,8 @@
 #ifndef STDLIB_H
 #define STDLIB_H
 
+#include <wasm_simd128.h>
+
 #define WASM_PAGE_SIZE 65536
 #define DOUBLE_MAX 1.7976931348623157e+308
 #define INT_MAX 2147483647
@@ -22,5 +24,6 @@ void growMemory(int pages);
 
 // math
 double sqrt(double n);
+double dot(v128_t a, v128_t b);
 
 #endif
