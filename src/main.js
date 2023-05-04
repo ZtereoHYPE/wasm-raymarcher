@@ -36,6 +36,8 @@ function setup() {
     exp.addSphere(worldPointer, 0, 0, 20, 15);
     exp.addSphere(worldPointer, -30, 1, 20, 7.0);
     exp.addSphere(worldPointer, -20, 16, 20, 2.0);
+
+    exp.setLight(worldPointer, -3, -1, -0.5);
     // exp.addSphere(worldPointer, 20, 0, 20, 10.0);
     // exp.addSphere(worldPointer, 30, 1, 20, 7.0);
     // exp.addSphere(worldPointer, 20, 16, 20, 2.0);
@@ -52,8 +54,11 @@ function draw() {
     movePlayer();
 
     let time = performance.now();
-
+    
     const raymarchResult = exp.rayMarch(RES, worldPointer);
+
+    console.log("Raymarch time: " + (performance.now() - time));
+
     const raymarchResultArr = new Int32Array(exp.memory.buffer, raymarchResult, RES * RES * 3);
     const pixelSize = canvas.width / RES;
     for (let i = 0; i < RES; i++) {
