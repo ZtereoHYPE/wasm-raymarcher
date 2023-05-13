@@ -67,9 +67,7 @@ const server = http.createServer((req, res) => {
             res.setHeader('Content-Type', 'text/css');
             break;
         default:
-            res.write('404');
-            res.end();
-            return;
+            res.setHeader('Content-Type', 'text/plain');
     }
     
     fs.readFile(url, (err, data) => {
