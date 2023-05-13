@@ -1,12 +1,12 @@
 const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d', {alpha: false, antialias: false});
+const gl = canvas.getContext('webgl2');
 
-ctx.fillStyle = 'black';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-const RES = 128;
+const RES = 256;
 
 let wasmModule = null;
+
+let program, textureId, fragmentSource, vertexSource;
 
 const memory = new WebAssembly.Memory({initial: 1, maximum: 16});
 fetch('build/main.wasm')
@@ -22,15 +22,29 @@ fetch('build/main.wasm')
             env: { "jslog": logNum }
         });
         
-        setup();
-        draw();
+        let fragFetch = fetch('glsl/fragment.glsl')
+            .then(response => response.text())
+            .then(text => fragmentSource = text);
+
+        let vtxFetch = fetch('glsl/vertex.glsl')
+            .then(response => response.text())
+            .then(text => vertexSource = text);
+
+        Promise.all([fragFetch, vtxFetch]).then(() => {
+            setup();
+            draw();
+        });
     })
+
+
 
 let worldPointer = null;
 let exp = null;
 let pressedKeys = [];
 
+
 function setup() {
+    // setup world 
     exp = wasmModule.exports;
     worldPointer = exp.createWorld();
     exp.addSphere(worldPointer, 0, 0, 20, 15);
@@ -38,38 +52,109 @@ function setup() {
     exp.addSphere(worldPointer, -20, 16, 20, 2.0);
 
     exp.setLight(worldPointer, -3, -1, -0.5);
-    // exp.addSphere(worldPointer, 20, 0, 20, 10.0);
-    // exp.addSphere(worldPointer, 30, 1, 20, 7.0);
-    // exp.addSphere(worldPointer, 20, 16, 20, 2.0);
 
+    // setup event listeners
     window.addEventListener('keydown', (e) => {
         pressedKeys[e.keyCode] = true;
     });
     window.addEventListener('keyup', (e) => {
         pressedKeys[e.keyCode] = false;
     });
+
+    // setup webgl stuff
+    const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertexShader, vertexSource);
+    gl.compileShader(vertexShader);
+
+    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragmentShader, fragmentSource);
+    gl.compileShader(fragmentShader);
+
+    program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+
+    // 2 tris cover entire screen
+    let squareVertices = new Float32Array([
+        -1, 1,
+        -1, -1,
+        1, 1,
+        -1, -1,
+        1, -1,
+        1, 1
+    ]);
+    
+    const vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, squareVertices, gl.STATIC_DRAW);
+
+    const positionAttribLocation = gl.getAttribLocation(program, 'a_position');
+    gl.vertexAttribPointer(
+        positionAttribLocation,
+        2,
+        gl.FLOAT,
+        gl.FALSE,
+        2 * Float32Array.BYTES_PER_ELEMENT,
+        0
+    );
+
+    gl.enableVertexAttribArray(positionAttribLocation);
+
+    textureId = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, textureId);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGB32F,
+        RES,
+        RES,
+        0,
+        gl.RGB,
+        gl.FLOAT,
+        null
+    );
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    gl.useProgram(program);
+
+    const textureUniformLocation = gl.getUniformLocation(program, 'u_texture');
+    gl.uniform1i(textureUniformLocation, 0);
 }
 
 function draw() {
     movePlayer();
+    
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    let time = performance.now();
+    let startTime = performance.now();
     
     const raymarchResult = exp.rayMarch(RES, worldPointer);
 
-    console.log("Raymarch time: " + (performance.now() - time));
+    let raymarchTime = performance.now() - startTime;
 
-    const raymarchResultArr = new Int32Array(exp.memory.buffer, raymarchResult, RES * RES * 3);
-    const pixelSize = canvas.width / RES;
-    for (let i = 0; i < RES; i++) {
-        for (let j = 0; j < RES; j++) {
-            let idx = (i * RES + j) * 3;
-            ctx.fillStyle = `rgb(${raymarchResultArr[idx]}, ${raymarchResultArr[idx + 1]}, ${raymarchResultArr[idx + 2]})`;
-            ctx.fillRect(j * pixelSize, i * pixelSize, pixelSize, pixelSize);
-        }
-    }
+    const raymarchResultArr = new Float32Array(exp.memory.buffer, raymarchResult, RES * RES * 3);
 
-    console.log("FPS: " + Math.floor(1000/(performance.now() - time)));
+    // update the texture data with the result
+    gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        0,
+        0,
+        0,
+        RES,
+        RES,
+        gl.RGB,
+        gl.FLOAT,
+        raymarchResultArr
+    );
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+
+    console.log("FPS: " + Math.floor(1000/(performance.now() - startTime)), "raymarch ratio: " + Math.round((raymarchTime / (performance.now() - startTime)) * 100) / 100);
 
     requestAnimationFrame(draw);
 }
