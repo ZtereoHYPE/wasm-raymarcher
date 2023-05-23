@@ -50,6 +50,7 @@ function setup() {
     exp.addSphere(worldPointer, 0, 0, 20, 15);
     exp.addSphere(worldPointer, -30, 1, 20, 7.0);
     exp.addSphere(worldPointer, -20, 16, 20, 2.0);
+    exp.addPlane(worldPointer, 10, 0, 0, 1, 0, 0);
 
     exp.setLight(worldPointer, -3, -1, -0.5);
 
@@ -152,7 +153,6 @@ function draw() {
     );
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
-
 
     console.log("FPS: " + Math.floor(1000/(performance.now() - startTime)), "raymarch ratio: " + Math.round((raymarchTime / (performance.now() - startTime)) * 100) / 100);
 

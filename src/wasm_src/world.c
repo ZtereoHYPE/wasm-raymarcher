@@ -5,6 +5,7 @@
 World *createWorld() {
     World *world = customMalloc(sizeof(World));
     world->sphereCount = 0;
+    world->planeCount = 0;
     world->light = wasm_f32x4_const(0, 0, 0, 0);
     world->camera = wasm_i32x4_const(0, 0, 0, 0);
 
@@ -18,6 +19,15 @@ void addSphere(World *world, float x, float y, float z, float radius) {
     sphere->radius = radius;
 
     addSphereToWorld(world, sphere);
+}
+
+void addPlane(World *world, float x, float y, float z, float nx, float ny, float nz) {
+    Plane *plane = customMalloc(sizeof(Plane));
+
+    plane->position = wasm_f32x4_make(x, y, z, 0);
+    plane->normal = wasm_f32x4_make(nx, ny, nz, 0);
+
+    addPlaneToWorld(world, plane);
 }
 
 void setLight(World *world, float x, float y, float z) {
@@ -52,4 +62,18 @@ static void addSphereToWorld(World *world, Sphere *sphere) {
 
     // update the world's array
     world->spheres = newSphereArray;
+}
+
+static void addPlaneToWorld(World *world, Plane *plane) {
+    // "realloc"
+    Plane **newPlaneArray = customMalloc(sizeof(Plane *) * (++world->planeCount));
+    for (int i = 0; i < world->planeCount; i++) {
+        newPlaneArray[i] = world->planes[i];
+    }
+
+    // add the new plane
+    newPlaneArray[world->planeCount - 1] = plane;
+
+    // update the world's array
+    world->planes = newPlaneArray;
 }

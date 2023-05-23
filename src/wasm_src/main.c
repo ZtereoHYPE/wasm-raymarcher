@@ -13,22 +13,46 @@ double simdDistance(const v128_t v1, const v128_t v2) {
     return sqrt(dist);
 }
 
-double getSurfaceDistance(v128_t location, World *world, Sphere **closest) {
+double sphereSdf(const v128_t location, const Sphere *sphere) {
+    return simdDistance(location, sphere->position) - sphere->radius;
+}
+
+double planeSdf(const v128_t location, const Plane *plane) {
+    return absVal(dot(plane->normal, wasm_f32x4_sub(location, plane->position)));
+}
+
+double getSurfaceDistance(v128_t location, World *world, Shape **closest) {
     double smallestDistance = DOUBLE_MAX, currentDistance;
 
+    if (*closest == NULL)
+        *closest = customMalloc(sizeof(Shape));
+
     for (int i = 0; i < world->sphereCount; i++) {
-        currentDistance = simdDistance(world->spheres[i]->position, location) - world->spheres[i]->radius;
+        Sphere *sphere = world->spheres[i];
+        currentDistance = sphereSdf(location, sphere);
 
         if (currentDistance < smallestDistance) {
             smallestDistance = currentDistance;
-            *closest = world->spheres[i];
+            (*closest)->shape = world->spheres[i];
+            (*closest)->type = SphereShape;
+        }
+    }
+
+    for (int i = 0; i < world->planeCount; i++) {
+        Plane *plane = world->planes[i];
+        currentDistance = planeSdf(location, plane);
+
+        if (currentDistance < smallestDistance) {
+            smallestDistance = currentDistance;
+            (*closest)->shape = world->planes[i];
+            (*closest)->type = PlaneShape;
         }
     }
 
     return smallestDistance;
 }
 
-v128_t getSurfaceNormal(const v128_t location, Sphere *closest) {
+v128_t getSurfaceNormal(const v128_t location, Shape *closest) {
     const float epsilon = 0.0001;
     float xDelta, yDelta, zDelta, dist;
     v128_t xIncr, yIncr, zIncr, normal;
@@ -42,22 +66,31 @@ v128_t getSurfaceNormal(const v128_t location, Sphere *closest) {
     zIncr = wasm_f32x4_make(0, 0, epsilon, 0);
     zIncr = wasm_f32x4_add(zIncr, location);
 
-    dist = simdDistance(location, closest->position) - closest->radius;
-
-    xDelta = simdDistance(xIncr, closest->position) - closest->radius - dist;
-    yDelta = simdDistance(yIncr, closest->position) - closest->radius - dist;
-    zDelta = simdDistance(zIncr, closest->position) - closest->radius - dist;
+    switch(closest->type) {
+        case SphereShape:
+            dist = sphereSdf(location, closest->shape);
+            xDelta = sphereSdf(xIncr, closest->shape) - dist;
+            yDelta = sphereSdf(yIncr, closest->shape) - dist;
+            zDelta = sphereSdf(zIncr, closest->shape) - dist;
+            break;
+        case PlaneShape:
+            dist = planeSdf(location, closest->shape);
+            xDelta = planeSdf(xIncr, closest->shape) - dist;
+            yDelta = planeSdf(yIncr, closest->shape) - dist;
+            zDelta = planeSdf(zIncr, closest->shape) - dist;
+            break;
+    }
 
     normal = wasm_f32x4_make(xDelta, yDelta, zDelta, 0);
 
-    // normalise the vector
     float normalLength = sqrt(
         xDelta * xDelta +
         yDelta * yDelta +
         zDelta * zDelta
     );
 
-     return wasm_f32x4_div(normal, wasm_f32x4_splat(normalLength));
+    // normalise the vector
+    return wasm_f32x4_div(normal, wasm_f32x4_splat(normalLength));
 }
 
 void normalShader(float *pixels, int res, int i, int j, v128_t normal) {
@@ -112,19 +145,19 @@ float *rayMarch(const unsigned int resolution, World *world) {
 
             v128_t rayLocation = world->camera;
             double closestDistance;
-            Sphere *closestSphere = NULL;
+            Shape *closestShape = NULL;
 
             // march the ray forwards
             int loops = 0;
             do {
-                closestDistance = getSurfaceDistance(rayLocation, world, &closestSphere);
+                closestDistance = getSurfaceDistance(rayLocation, world, &closestShape);
                 rayLocation = wasm_f32x4_add(rayLocation, wasm_f32x4_mul(uvVector, wasm_f32x4_splat(closestDistance)));
                 loops++;
-            } while (closestDistance > 0.01 && closestDistance < 1000);
+            } while (closestDistance > 0.01 && closestDistance < 1000 && loops < 256);
 
             // if we hit a surface, calculate the color
             if (closestDistance <= 0.01) {
-                v128_t normal = getSurfaceNormal(rayLocation, closestSphere);
+                v128_t normal = getSurfaceNormal(rayLocation, closestShape);
 
                 normalShader(pixels, resolution, i, j, normal);
                 // lightShader(pixels, resolution, i, j, normal, world);
@@ -133,6 +166,6 @@ float *rayMarch(const unsigned int resolution, World *world) {
     }
 
     // doesn't actually clear it, it's just so that at the next render we're not leaking hundreds of MBs
-    popMemory(resolution * resolution * 3 * sizeof(float));
+    popMemory(resolution * resolution * 3 * sizeof(float) + sizeof(Shape));
     return pixels;
 }
