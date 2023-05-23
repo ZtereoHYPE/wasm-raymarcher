@@ -77,3 +77,7 @@ double dot(v128_t a, v128_t b) {
    
     return dot;
 }
+
+double absVal(double n) {
+    return __builtin_fabs(n);
+}

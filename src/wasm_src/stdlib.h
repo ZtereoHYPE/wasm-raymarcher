@@ -25,5 +25,6 @@ void growMemory(int pages);
 // math
 double sqrt(double n);
 double dot(v128_t a, v128_t b);
+double absVal(double n);
 
 #endif
