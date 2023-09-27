@@ -1,5 +1,4 @@
 #include "stdlib.h"
-#include <wasm_simd128.h>
 
 #define WASM_PAGE_SIZE 65536
 
@@ -60,24 +59,4 @@ void *memchr(const void *ptr, int value, unsigned long num) {
 void growMemory(int pages) {
     __builtin_wasm_memory_grow(0, pages);
     currentPages += pages;
-}
-
-// math functions
-double sqrt(double n) {
-    return __builtin_sqrt(n);
-}
-
-double dot(v128_t a, v128_t b) {
-    v128_t c = wasm_f32x4_mul(a, b);
-    
-    float dot = 0;
-    dot += wasm_f32x4_extract_lane(c, 0);
-    dot += wasm_f32x4_extract_lane(c, 1);
-    dot += wasm_f32x4_extract_lane(c, 2);
-   
-    return dot;
-}
-
-double absVal(double n) {
-    return __builtin_fabs(n);
 }

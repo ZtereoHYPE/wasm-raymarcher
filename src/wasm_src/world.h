@@ -1,43 +1,24 @@
-#ifndef WORLD_H
-#define WORLD_H
+#pragma once
 
 #include <wasm_simd128.h>
-
-typedef enum {
-    SphereShape,
-    PlaneShape
-} ShapeType;
+#include "math.h"
 
 typedef struct {
-    v128_t position;
-    float radius;
-} Sphere;
+    float x;
+    float y;
+    float z;
+    float rh; // horizontal angle in radians
+    float rv; // vertical angle in radians
+} Camera;
 
 typedef struct {
-    v128_t position;
-    v128_t normal;
-} Plane;
-
-typedef struct {
-    ShapeType type;
-    void *shape;
-} Shape;
-
-typedef struct {
-    Sphere **spheres;
-    Plane **planes;
-    int sphereCount;
-    int planeCount;
-    v128_t light;
-    v128_t camera;
+    Vector3f *vertices;
+    int vertexCount;
+    Camera camera;
 } World;
 
 World *createWorld();
-void addSphere(World *world, float x, float y, float z, float radius);
-void setLight(World *world, float x, float y, float z);
+void addLine(World *world, float x1, float y1, float z1, float x2, float y2, float z2);
 
 /* private stuff */
-static void addSphereToWorld(World *world, Sphere *sphere);
-static void addPlaneToWorld(World *world, Plane *plane);
-
-#endif
+static void addVertexToWorld(World *world, Vector3f v);

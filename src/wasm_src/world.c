@@ -4,76 +4,45 @@
 
 World *createWorld() {
     World *world = customMalloc(sizeof(World));
-    world->sphereCount = 0;
-    world->planeCount = 0;
-    world->light = wasm_f32x4_const(0, 0, 0, 0);
-    world->camera = wasm_i32x4_const(0, 0, 0, 0);
+    world->vertexCount = 0;
+    world->camera = (Camera) {
+        0, 0, 0, 0, 0           // is this how struct instantiation works in C?
+    };
 
     return world;
 }
 
-void addSphere(World *world, float x, float y, float z, float radius) {
-    Sphere *sphere = customMalloc(sizeof(Sphere));
+void addLine(World *world, float x1, float y1, float z1, float x2, float y2, float z2) {
+    Vector3f v = (Vector3f) {x1, y1, z1};
+    addVertexToWorld(world, v);
 
-    sphere->position = wasm_f32x4_make(x, y, z, 0);
-    sphere->radius = radius;
-
-    addSphereToWorld(world, sphere);
-}
-
-void addPlane(World *world, float x, float y, float z, float nx, float ny, float nz) {
-    Plane *plane = customMalloc(sizeof(Plane));
-
-    plane->position = wasm_f32x4_make(x, y, z, 0);
-    plane->normal = wasm_f32x4_make(nx, ny, nz, 0);
-
-    addPlaneToWorld(world, plane);
-}
-
-void setLight(World *world, float x, float y, float z) {
-    world->light = wasm_f32x4_make(x, y, z, 0);
-    // normalise the vector
-    float lightLength = sqrt(
-        x * x +
-        y * y +
-        z * z
-    );
-
-    world->light = wasm_f32x4_div(world->light, wasm_f32x4_splat(lightLength));
+    v = (Vector3f) {x2, y2, z2};
+    addVertexToWorld(world, v);
 }
 
 void moveCamera(World *world, float x, float y, float z) {
-    world->camera = wasm_f32x4_add(world->camera, wasm_f32x4_make(x, y, z, 0));
+    world->camera.x += x;
+    world->camera.y += y;
+    world->camera.z += z;
+}
+
+void rotateCamera(World *world, float rh, float rv) {
+    world->camera.rh += rh;
+    world->camera.rv += rv;
 }
 
 /*
  *   *** PRIVATE FUNCTIONS ***
  */
-
-static void addSphereToWorld(World *world, Sphere *sphere) {
+static void addVertexToWorld(World *world, Vector3f v) {
     // "realloc"
-    Sphere **newSphereArray = customMalloc(sizeof(Sphere *) * (++world->sphereCount));
-    for (int i = 0; i < world->sphereCount; i++) {
-        newSphereArray[i] = world->spheres[i];
-    }
+    int newVertexCount = ++(world->vertexCount);
+    Vector3f *newVertexArray = customMalloc(sizeof(Vector3f) * (newVertexCount));
+    memcpy(newVertexArray, world->vertices, sizeof(Vector3f) * (newVertexCount));
 
     // add the new sphere
-    newSphereArray[world->sphereCount - 1] = sphere;
+    newVertexArray[newVertexCount - 1] = v;
 
     // update the world's array
-    world->spheres = newSphereArray;
-}
-
-static void addPlaneToWorld(World *world, Plane *plane) {
-    // "realloc"
-    Plane **newPlaneArray = customMalloc(sizeof(Plane *) * (++world->planeCount));
-    for (int i = 0; i < world->planeCount; i++) {
-        newPlaneArray[i] = world->planes[i];
-    }
-
-    // add the new plane
-    newPlaneArray[world->planeCount - 1] = plane;
-
-    // update the world's array
-    world->planes = newPlaneArray;
+    world->vertices = newVertexArray;
 }

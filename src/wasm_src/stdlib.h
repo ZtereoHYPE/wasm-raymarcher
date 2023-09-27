@@ -1,11 +1,10 @@
-#ifndef STDLIB_H
-#define STDLIB_H
+#pragma once
 
 #include <wasm_simd128.h>
 
 #define WASM_PAGE_SIZE 65536
 #define DOUBLE_MAX 1.7976931348623157e+308
-#define INT_MAX 2147483647
+#define INT_MAX 2147483647x
 #define NULL 0
 
 // logging
@@ -21,10 +20,3 @@ void *memcpy(void *destination, const void *source, unsigned long n);
 void *memmove(void *destination, const void *source, unsigned long num);
 int memcmp(const void *ptr1, const void *ptr2, unsigned long num);
 void growMemory(int pages);
-
-// math
-double sqrt(double n);
-double dot(v128_t a, v128_t b);
-double absVal(double n);
-
-#endif

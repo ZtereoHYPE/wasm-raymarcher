@@ -47,12 +47,7 @@ function setup() {
     // setup world 
     exp = wasmModule.exports;
     worldPointer = exp.createWorld();
-    exp.addSphere(worldPointer, 0, 0, 20, 15);
-    exp.addSphere(worldPointer, -30, 1, 20, 7.0);
-    exp.addSphere(worldPointer, -20, 16, 20, 2.0);
-    exp.addPlane(worldPointer, 10, 0, 0, 1, 0, 0);
-
-    exp.setLight(worldPointer, -3, -1, -0.5);
+    exp.addLine(worldPointer, 10, 10, 10, 10, 20, 20);
 
     // setup event listeners
     window.addEventListener('keydown', (e) => {
@@ -130,10 +125,11 @@ function draw() {
     
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
+    
     let startTime = performance.now();
     
-    const raymarchResult = exp.rayMarch(RES, worldPointer);
+    const raymarchResult = exp.rasterize(RES, worldPointer);
+    // console.log("draw")
 
     let raymarchTime = performance.now() - startTime;
 
@@ -156,7 +152,7 @@ function draw() {
 
     console.log("FPS: " + Math.floor(1000/(performance.now() - startTime)), "raymarch ratio: " + Math.round((raymarchTime / (performance.now() - startTime)) * 100) / 100);
 
-    requestAnimationFrame(draw);
+    // requestAnimationFrame(draw);
 }
 
 // move player using wasd
