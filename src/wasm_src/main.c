@@ -21,6 +21,7 @@ float *rasterize(const unsigned int resolution, World *world) {
     float fov = 0.5f;
 
     for (int i = 0; i < world->vertexCount; i++) {
+        // logNumber(sin(-4));
         Vector3f vertex = world->vertices[i * 2];
         Vector3f projected = mult_matrix_vec(cameraMatrix, vertex);
 

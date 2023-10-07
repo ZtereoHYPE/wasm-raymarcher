@@ -1,7 +1,5 @@
 #include "stdlib.h"
 
-#define WASM_PAGE_SIZE 65536
-
 extern unsigned char __heap_base;
 void *bump_pointer = &__heap_base;
 

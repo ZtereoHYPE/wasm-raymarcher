@@ -17,9 +17,13 @@ fetch('build/main.wasm')
             console.log(n);
         }
 
+        const jsSin = (n) => {
+            return Math.sin(n);
+        }
+
         wasmModule = new WebAssembly.Instance(compiledModule, {
             js: {mem: memory},
-            env: { "jslog": logNum }
+            env: { "jslog": logNum, "jssin": jsSin}
         });
         
         let fragFetch = fetch('glsl/fragment.glsl')

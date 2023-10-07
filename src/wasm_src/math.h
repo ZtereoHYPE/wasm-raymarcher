@@ -2,9 +2,12 @@
 
 #include <wasm_simd128.h>
 
-#define PI 3.1415926536f
+#define PI 3.1415926536
+#define LOOKUP_SIZE 100
 
 // standard math functions
+double truncate(double n);
+double fmod(double n, double m);
 double sqrt(double n);
 double absVal(double n);
 double sin(double n);
