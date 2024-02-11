@@ -2,7 +2,7 @@ const canvas = document.getElementById('canvas');
 const gl = canvas.getContext('webgl2');
 
 
-const RES = 256;
+const RES = 512;
 
 let wasmModule = null;
 
@@ -51,7 +51,21 @@ function setup() {
     // setup world 
     exp = wasmModule.exports;
     worldPointer = exp.createWorld();
-    exp.addLine(worldPointer, 10, 10, 10, 10, 20, 20);
+
+    exp.addLine(worldPointer, -10, 10, 10, 10, 10, 10);
+    exp.addLine(worldPointer, 10, 10, 10, 10, -10, 10);
+    exp.addLine(worldPointer, 10, -10, 10, -10, -10, 10);
+    exp.addLine(worldPointer, -10, -10, 10, -10, 10, 10);
+
+    exp.addLine(worldPointer, -10, 10, 10, -10, 10, 20);
+    exp.addLine(worldPointer, 10, 10, 10, 10, 10, 20);
+    exp.addLine(worldPointer, 10, -10, 10, 10, -10, 20);
+    exp.addLine(worldPointer, -10, -10, 10, -10, -10, 20);
+
+    exp.addLine(worldPointer, -10, 10, 20, 10, 10, 20);
+    exp.addLine(worldPointer, 10, 10, 20, 10, -10, 20);
+    exp.addLine(worldPointer, 10, -10, 20, -10, -10, 20);
+    exp.addLine(worldPointer, -10, -10, 20, -10, 10, 20);
 
     // setup event listeners
     window.addEventListener('keydown', (e) => {
@@ -154,9 +168,9 @@ function draw() {
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    console.log("FPS: " + Math.floor(1000/(performance.now() - startTime)), "raymarch ratio: " + Math.round((raymarchTime / (performance.now() - startTime)) * 100) / 100);
+    //console.log("FPS: " + Math.floor(1000/(performance.now() - startTime)), "raymarch ratio: " + Math.round((raymarchTime / (performance.now() - startTime)) * 100) / 100);
 
-    // requestAnimationFrame(draw);
+    requestAnimationFrame(draw);
 }
 
 // move player using wasd
@@ -180,5 +194,11 @@ function movePlayer() {
     }
     if (pressedKeys[69]) {
         exp.moveCamera(worldPointer, -speed, 0, 0);
+    }
+    if (pressedKeys[39]) {
+        exp.rotateCamera(worldPointer, 0, speed / 100);
+    }
+    if (pressedKeys[37]) {
+        exp.rotateCamera(worldPointer, 0, -speed / 100);
     }
 }
